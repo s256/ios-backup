@@ -46,15 +46,17 @@ app = Flask(__name__)
 def run_backup():
     print("Starting Backup procedure")
 
-    log_file_path = config['log_path'] + '/backup_log_' + datetime.utcnow().strftime("%Y%m%d%H%M%S")
+    log_file_path = config['log_path'] + '/backup_log_' + datetime.utcnow().strftime("%Y%m%d%H%M%S" + '.log')
 
     api_path = config['hass_url'] + '/api/states/' + config['hass_backup_entity']
     if not is_last_backup_from_today(LATEST_PATH):
         print("[ibackup] No current backup exists, trying to run backup now")
-        result = subprocess.run([config['idevicebackup2_bin'], "backup", config['backup_path'], "-n", "-u", config['device_uuid']], capture_output=True, text=True)
-        if result.returncode == 0:
-            with open(log_file_path, "w") as log_file:
-                log_file.write(result.stdout)
+        process = subprocess.Popen([config['idevicebackup2_bin'], "backup", config['backup_path'], "-n", "-u", config['device_uuid']], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        output, error = process.communicate()
+        with open(log_file_path, "w") as log_file:
+            log_file.write(output)
+            log_file.write(error)
+        if process.returncode == 0:
             with open(LATEST_PATH, "w") as timestamp_file:
                 timestamp_file.write(CURDATE)
             hass_payload = {
@@ -76,11 +78,8 @@ def run_backup():
                 print('Failed to update Home-Assistant State')
             return jsonify({'date': CURDATE})
         else:
-            print("Backup failed with: " + result.stderr)
-            print("Backup failed with: " + result.stdout)
-            with open(log_file_path, "w") as log_file:
-                log_file.write(result.stdout)
-                log_file.write(result.stderr)
+            print("Backup failed with: " + error)
+            print("Backup failed with: " + output)
             return f"Backup failed, see log file '{log_file_path}'", 503
     else:
         print("[ibackup] Backup for today exists.")
