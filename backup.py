@@ -52,7 +52,9 @@ def run_backup():
     if not is_last_backup_from_today(LATEST_PATH):
         print("[ibackup] No current backup exists, trying to run backup now")
         process = subprocess.Popen([config['idevicebackup2_bin'], "backup", config['backup_path'], "-n", "-u", config['device_uuid']], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        output, error = process.communicate()
+        output_b, error_b = process.communicate()
+        output = output_b.decode('utf-8')
+        error = error_b.decode('utf-8')
         with open(log_file_path, "w") as log_file:
             log_file.write(output)
             log_file.write(error)
