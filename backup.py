@@ -1,6 +1,6 @@
 from flask import Flask, jsonify
 from datetime import date, datetime
-from subprocess import PIPE, STDOUT, CalledProcessError, CompletedProcess, Popen
+import subprocess
 import dotenv
 import os
 import requests
@@ -25,14 +25,7 @@ hass_api_headers = {
 LATEST_PATH = "./latest-backup-date"
 CURDATE = date.today().isoformat()
 
-log_file_path = config['log_path'] + '/backup_log_' + datetime.utcnow().strftime("%Y%m%d%H%M%S" + '.log')
 
-logging.basicConfig(
-    level=logging.INFO,
-    filename=log_file_path,
-    filemode="w",
-    encoding="utf-8",
-)
 
 for k, v in config.items():
     if v == None:
@@ -48,39 +41,35 @@ def is_last_backup_from_today(last_backup_timestamp_file):
     today = date.today().isoformat()
     return (last_backup == today)
 
-def stream_command(
-    args,
-    *,
-    stdout_handler=logging.info,
-    check=True,
-    text=True,
-    stdout=PIPE,
-    stderr=STDOUT,
-    **kwargs,
-):
-    """Mimic subprocess.run, while processing the command output in real time."""
-    with Popen(args, text=text, stdout=stdout, stderr=stderr, **kwargs) as process:
-        for line in process.stdout:
-            stdout_handler(line[:-1])
-    retcode = process.poll()
-    if check and retcode:
-        raise CalledProcessError(retcode, process.args)
-    return CompletedProcess(process.args, retcode)
 
 app = Flask(__name__)
 
 @app.route('/backup', methods=['POST'])
 def run_backup():
-    logging.info("Starting Backup procedure")
+    log_file_path = config['log_path'] + '/backup_log_' + datetime.utcnow().strftime("%Y%m%d%H%M" + '.log')
 
-    
+    logging.basicConfig(
+        level=logging.INFO,
+        filename=log_file_path,
+        filemode="a",
+        encoding="utf-8",
+    )
+
+    logging.info("Starting Backup procedure")
 
     api_path = config['hass_url'] + '/api/states/' + config['hass_backup_entity']
     if not is_last_backup_from_today(LATEST_PATH):
         logging.info("[ibackup] No current backup exists, trying to run backup now")
         args = [config['idevicebackup2_bin'], "backup", config['backup_path'], "-n", "-u", config['device_uuid']]
-        process = stream_command(args=args)
-        if process.returncode == 0:
+        process = subprocess.Popen(args=args,stdout=subprocess.PIPE, stderr=subprocess.STDOUT,text=True)
+        while True:
+            output = process.stdout.readline()
+            if process.poll() is not None:
+                break
+            if output:
+                logging.info(output.strip())
+        rc = process.poll()
+        if rc == 0:
             with open(LATEST_PATH, "w") as timestamp_file:
                 timestamp_file.write(CURDATE)
             hass_payload = {
