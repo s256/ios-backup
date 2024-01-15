@@ -1,0 +1,13 @@
+[Unit]
+Description=iOS Backup script triggered via web using uWSGI Flask 
+After=network.target
+
+[Service]
+User=sammy
+Group=www-data
+WorkingDirectory=/opt/ios-backup
+Environment="PATH=/opt/ios-backup/.venv/bin"
+ExecStart=/opt/ios-backup/.venv/bin/uwsgi --ini ios-backup.ini
+
+[Install]
+WantedBy=multi-user.target
