@@ -1,9 +1,10 @@
 from flask import Flask, jsonify
 from datetime import date, datetime
+from subprocess import PIPE, STDOUT, CalledProcessError, CompletedProcess, Popen
 import dotenv
-import subprocess
 import os
 import requests
+import logging
 
 dotenv.load_dotenv()
 config = {
@@ -24,6 +25,15 @@ hass_api_headers = {
 LATEST_PATH = "./latest-backup-date"
 CURDATE = date.today().isoformat()
 
+log_file_path = config['log_path'] + '/backup_log_' + datetime.utcnow().strftime("%Y%m%d%H%M%S" + '.log')
+
+logging.basicConfig(
+    level=logging.INFO,
+    filename=log_file_path,
+    filemode="w",
+    encoding="utf-8",
+)
+
 for k, v in config.items():
     if v == None:
         raise Exception(f'Missing Setting (env var) for "{k}"')
@@ -38,37 +48,49 @@ def is_last_backup_from_today(last_backup_timestamp_file):
     today = date.today().isoformat()
     return (last_backup == today)
 
-
+def stream_command(
+    args,
+    *,
+    stdout_handler=logging.info,
+    check=True,
+    text=True,
+    stdout=PIPE,
+    stderr=STDOUT,
+    **kwargs,
+):
+    """Mimic subprocess.run, while processing the command output in real time."""
+    with Popen(args, text=text, stdout=stdout, stderr=stderr, **kwargs) as process:
+        for line in process.stdout:
+            stdout_handler(line[:-1])
+    retcode = process.poll()
+    if check and retcode:
+        raise CalledProcessError(retcode, process.args)
+    return CompletedProcess(process.args, retcode)
 
 app = Flask(__name__)
 
 @app.route('/backup', methods=['POST'])
 def run_backup():
-    print("Starting Backup procedure")
+    logging.info("Starting Backup procedure")
 
-    log_file_path = config['log_path'] + '/backup_log_' + datetime.utcnow().strftime("%Y%m%d%H%M%S" + '.log')
+    
 
     api_path = config['hass_url'] + '/api/states/' + config['hass_backup_entity']
     if not is_last_backup_from_today(LATEST_PATH):
-        print("[ibackup] No current backup exists, trying to run backup now")
-        process = subprocess.Popen([config['idevicebackup2_bin'], "backup", config['backup_path'], "-n", "-u", config['device_uuid']], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        output_b, error_b = process.communicate()
-        output = output_b.decode('utf-8')
-        error = error_b.decode('utf-8')
-        with open(log_file_path, "w") as log_file:
-            log_file.write(output)
-            log_file.write(error)
+        logging.info("[ibackup] No current backup exists, trying to run backup now")
+        args = [config['idevicebackup2_bin'], "backup", config['backup_path'], "-n", "-u", config['device_uuid']]
+        process = stream_command(args=args)
         if process.returncode == 0:
             with open(LATEST_PATH, "w") as timestamp_file:
                 timestamp_file.write(CURDATE)
             hass_payload = {
                 'state': CURDATE
             }
-            print('Updating state in Home-Assistant')
+            logging.info('Updating state in Home-Assistant')
             try:
                 hass_response = requests.post(url=api_path, headers=hass_api_headers, json=hass_payload)
                 if hass_response.status_code != 200:
-                    print(f'Failed to update Home-Assistant State with {hass_response.status_code} - {hass_response.json}')
+                    logging.info(f'Failed to update Home-Assistant State with {hass_response.status_code} - {hass_response.json}')
                 else:
                     return jsonify(
                         {
@@ -77,14 +99,13 @@ def run_backup():
                             }
                             )
             except OSError:
-                print('Failed to update Home-Assistant State')
+                logging.info('Failed to update Home-Assistant State')
             return jsonify({'date': CURDATE})
         else:
-            print("Backup failed with: " + error)
-            print("Backup failed with: " + output)
+            logging.info("Backup failed with: " + output)
             return f"Backup failed, see log file '{log_file_path}'", 503
     else:
-        print("[ibackup] Backup for today exists.")
+        logging.info("[ibackup] Backup for today exists.")
         return jsonify({
             'date': CURDATE,
             'message': 'Backup for today exists'})
