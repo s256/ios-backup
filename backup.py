@@ -55,7 +55,7 @@ def run_backup():
         encoding="utf-8",
     )
 
-    logging.info("Starting Backup procedure")
+    logging.info("Starting Backup procedure at " + datetime.utcnow().isoformat() )
 
     api_path = config['hass_url'] + '/api/states/' + config['hass_backup_entity']
     if not is_last_backup_from_today(LATEST_PATH):
