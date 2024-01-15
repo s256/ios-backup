@@ -77,10 +77,11 @@ def run_backup():
             return jsonify({'date': CURDATE})
         else:
             print("Backup failed with: " + result.stderr)
+            print("Backup failed with: " + result.stdout)
             with open(log_file_path, "w") as log_file:
                 log_file.write(result.stdout)
                 log_file.write(result.stderr)
-            return f"Backup failed, see log file '{log_file}'", 503
+            return f"Backup failed, see log file '{log_file_path}'", 503
     else:
         print("[ibackup] Backup for today exists.")
         return jsonify({
