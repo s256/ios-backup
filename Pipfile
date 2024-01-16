@@ -4,10 +4,10 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-uwsgi = "*"
 python-dotenv = "*"
 flask = "*"
 requests = "*"
+gunicorn = "*"
 
 [dev-packages]
 
