@@ -80,17 +80,15 @@ def run_backup():
                 hass_response = requests.post(url=api_path, headers=hass_api_headers, json=hass_payload)
                 if hass_response.status_code != 200:
                     logging.info(f'Failed to update Home-Assistant State with {hass_response.status_code} - {hass_response.json}')
-                else:
-                    return jsonify(
-                        {
-                            'date': CURDATE,
-                            'message': 'Backup created'
-                            }
-                            )
             except OSError:
                 logging.info('Failed to update Home-Assistant State')
             logging.info('Backup process ended')
-            return jsonify({'date': CURDATE})
+            return jsonify(
+                {
+                    'date': CURDATE,
+                    'message': 'Backup created'
+                    }
+                    )
         else:
             logging.info("Backup failed with: " + output)
             return f"Backup failed, see log file '{log_file_path}'", 503
