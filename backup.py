@@ -53,6 +53,11 @@ def is_last_backup_from_today(last_backup_timestamp_file):
 app = Flask(__name__)
 
 
+@app.route('/', methods=['GET'])
+def run_backup():
+    return jsonify({'message': 'Healthcheck'})
+
+
 @app.route('/backup', methods=['POST'])
 def run_backup():
 
