@@ -10,7 +10,7 @@ dotenv.load_dotenv()
 config = {
     'device_uuid': os.getenv('DEVICE_UUID'),
     'backup_path': os.getenv('BACKUP_PATH'),
-    'hass_backup_entity': os.getenv('HASS_BACKUP_ENTITY'),
+    'hass_state_entity': os.getenv('HASS_STATE_ENTITY'),
     'hass_url': os.getenv('HASS_URL'),
     'hass_api_key': os.getenv('HASS_API_KEY'),
     'log_path': os.environ.get('LOG_PATH', '.'),
@@ -60,7 +60,7 @@ def run_backup():
                  datetime.utcnow().isoformat())
 
     api_path = config['hass_url'] + \
-        '/api/states/' + config['hass_backup_entity']
+        '/api/states/' + config['hass_state_entity']
     if not is_last_backup_from_today(LATEST_PATH):
         logging.info(
             "[ibackup] No current backup exists, trying to run backup now")
