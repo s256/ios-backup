@@ -26,6 +26,14 @@ hass_api_headers = {
 LATEST_PATH = f"{config['state_file_path']}/latest-backup-date"
 CURDATE = date.today().isoformat()
 
+log_file_path = config['log_path'] + '/ios-backup.log'
+
+logging.basicConfig(
+    level=logging.INFO,
+    filename=log_file_path,
+    filemode="a",
+    encoding="utf-8",
+)
 
 for k, v in config.items():
     if v == None:
@@ -47,15 +55,6 @@ app = Flask(__name__)
 
 @app.route('/backup', methods=['POST'])
 def run_backup():
-    log_file_path = config['log_path'] + '/backup_log_' + \
-        datetime.utcnow().strftime("%Y%m%d%H%M" + '.log')
-
-    logging.basicConfig(
-        level=logging.INFO,
-        filename=log_file_path,
-        filemode="a",
-        encoding="utf-8",
-    )
 
     logging.info("Starting Backup procedure at " +
                  datetime.utcnow().isoformat())
