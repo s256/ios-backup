@@ -13,7 +13,7 @@ config = {
     'hass_backup_entity': os.getenv('HASS_BACKUP_ENTITY'),
     'hass_url': os.getenv('HASS_URL'),
     'hass_api_key': os.getenv('HASS_API_KEY'),
-    'log_path': os.environ.get('LOG_PATH','.'),
+    'log_path': os.environ.get('LOG_PATH', '.'),
     'idevicebackup2_bin': os.environ.get('BACKUP_BIN_PATH', '/usr/local/bin/idevicebackup2')
 }
 
@@ -24,7 +24,6 @@ hass_api_headers = {
 
 LATEST_PATH = "./latest-backup-date"
 CURDATE = date.today().isoformat()
-
 
 
 for k, v in config.items():
@@ -44,9 +43,11 @@ def is_last_backup_from_today(last_backup_timestamp_file):
 
 app = Flask(__name__)
 
+
 @app.route('/backup', methods=['POST'])
 def run_backup():
-    log_file_path = config['log_path'] + '/backup_log_' + datetime.utcnow().strftime("%Y%m%d%H%M" + '.log')
+    log_file_path = config['log_path'] + '/backup_log_' + \
+        datetime.utcnow().strftime("%Y%m%d%H%M" + '.log')
 
     logging.basicConfig(
         level=logging.INFO,
@@ -55,13 +56,18 @@ def run_backup():
         encoding="utf-8",
     )
 
-    logging.info("Starting Backup procedure at " + datetime.utcnow().isoformat() )
+    logging.info("Starting Backup procedure at " +
+                 datetime.utcnow().isoformat())
 
-    api_path = config['hass_url'] + '/api/states/' + config['hass_backup_entity']
+    api_path = config['hass_url'] + \
+        '/api/states/' + config['hass_backup_entity']
     if not is_last_backup_from_today(LATEST_PATH):
-        logging.info("[ibackup] No current backup exists, trying to run backup now")
-        args = [config['idevicebackup2_bin'], "backup", config['backup_path'], "-n", "-u", config['device_uuid']]
-        process = subprocess.Popen(args=args,stdout=subprocess.PIPE, stderr=subprocess.STDOUT,text=True)
+        logging.info(
+            "[ibackup] No current backup exists, trying to run backup now")
+        args = [config['idevicebackup2_bin'], "backup",
+                config['backup_path'], "-n", "-u", config['device_uuid']]
+        process = subprocess.Popen(
+            args=args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         while True:
             output = process.stdout.readline()
             if process.poll() is not None:
@@ -77,9 +83,11 @@ def run_backup():
             }
             logging.info('Updating state in Home-Assistant')
             try:
-                hass_response = requests.post(url=api_path, headers=hass_api_headers, json=hass_payload)
+                hass_response = requests.post(
+                    url=api_path, headers=hass_api_headers, json=hass_payload)
                 if hass_response.status_code != 200:
-                    logging.info(f'Failed to update Home-Assistant State with {hass_response.status_code} - {hass_response.json}')
+                    logging.info(f'Failed to update Home-Assistant State with {
+                                 hass_response.status_code} - {hass_response.json}')
             except OSError:
                 logging.info('Failed to update Home-Assistant State')
             logging.info('Backup process ended')
@@ -87,8 +95,8 @@ def run_backup():
                 {
                     'date': CURDATE,
                     'message': 'Backup created'
-                    }
-                    )
+                }
+            )
         else:
             logging.info("Backup failed with: " + output)
             return f"Backup failed, see log file '{log_file_path}'", 503
