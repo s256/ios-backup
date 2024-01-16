@@ -14,6 +14,7 @@ config = {
     'hass_url': os.getenv('HASS_URL'),
     'hass_api_key': os.getenv('HASS_API_KEY'),
     'log_path': os.environ.get('LOG_PATH', '.'),
+    'state_file_path': os.environ.get('STATE_FILE_PATH', '.'),
     'idevicebackup2_bin': os.environ.get('BACKUP_BIN_PATH', '/usr/local/bin/idevicebackup2')
 }
 
@@ -22,7 +23,7 @@ hass_api_headers = {
     "content-type": "application/json",
 }
 
-LATEST_PATH = "./latest-backup-date"
+LATEST_PATH = f"{config['state_file_path']}/latest-backup-date"
 CURDATE = date.today().isoformat()
 
 
