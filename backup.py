@@ -89,6 +89,7 @@ def run_backup():
                             )
             except OSError:
                 logging.info('Failed to update Home-Assistant State')
+            logging.info('Backup process ended')
             return jsonify({'date': CURDATE})
         else:
             logging.info("Backup failed with: " + output)
