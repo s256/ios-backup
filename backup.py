@@ -23,6 +23,9 @@ hass_api_headers = {
     "content-type": "application/json",
 }
 
+api_path = config['hass_url'] + \
+    '/api/states/' + config['hass_state_entity']
+
 LATEST_PATH = f"{config['state_file_path']}/latest-backup-date"
 CURDATE = date.today().isoformat()
 
@@ -50,6 +53,16 @@ def is_last_backup_from_today(last_backup_timestamp_file):
     return (last_backup == today)
 
 
+def is_last_backup_from_today_hass(api_path: str, api_headers: str):
+    try:
+        response = requests.get(url=api_path, headers=api_headers)
+        last_backup = response.json()['state']
+    except:
+        last_backup = None
+    today = date.today().isoformat()
+    return (last_backup == today)
+
+
 app = Flask(__name__)
 
 
@@ -64,9 +77,8 @@ def run_backup():
     logging.info("Starting Backup procedure at " +
                  datetime.utcnow().isoformat())
 
-    api_path = config['hass_url'] + \
-        '/api/states/' + config['hass_state_entity']
-    if not is_last_backup_from_today(LATEST_PATH):
+    if not is_last_backup_from_today_hass(
+            api_headers=hass_api_headers, api_path=api_path):
         logging.info(
             "[ibackup] No current backup exists, trying to run backup now")
         args = [config['idevicebackup2_bin'], "backup",
@@ -81,8 +93,8 @@ def run_backup():
                 logging.info(output.strip())
         rc = process.poll()
         if rc == 0:
-            with open(LATEST_PATH, "w") as timestamp_file:
-                timestamp_file.write(CURDATE)
+            # with open(LATEST_PATH, "w") as timestamp_file:
+            #     timestamp_file.write(CURDATE)
             hass_payload = {
                 'state': CURDATE
             }
