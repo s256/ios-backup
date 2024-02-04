@@ -106,8 +106,10 @@ def run_backup():
                 logging.error(f'Failed to update Home-Assistant State - ' + e)
                 return 1
             if hass_response.status_code != 200:
-                logging.info('Failed to update Home-Assistant State with ' +
-                             str(hass_response.status_code) + ' - ' + hass_response.json)
+                logging.error('Failed to update Home-Assistant State with ' +
+                              str(hass_response.status_code))
+                logging.error(hass_response.json())
+                return 1
             logging.info('Backup process ended')
             return jsonify(
                 {
