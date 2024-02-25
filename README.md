@@ -126,6 +126,6 @@ Replace all config entries in the `.env` file or pass them as Environmentvariabl
 
 ## Credits
 
-Inspired by https://valinet.ro/2021/01/20/Automatically-backup-the-iPhone-to-the-Raspberry-Pi.html
+Inspired by [https://valinet.ro/2021/01/20/Automatically-backup-the-iPhone-to-the-Raspberry-Pi.html](https://valinet.ro/2021/01/20/Automatically-backup-the-iPhone-to-the-Raspberry-Pi.html)
 
 
